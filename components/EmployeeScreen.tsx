@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
   breakEndAction,
   breakStartAction,
@@ -10,23 +9,17 @@ import {
 } from "@/actions/timecard";
 import { Alerts } from "@/components/shared/Alerts";
 import { PageShell } from "@/components/shared/PageShell";
-import { EntryHistoryStats } from "@/components/admin/EntryHistoryStats";
 import { useTimecardBootstrap } from "@/hooks/useTimecardBootstrap";
-import {
-  currentMonthKey,
-  filterCompletedByMonth,
-  formatMonthLabel,
-} from "@/lib/admin-stats";
 import {
   BREAK_DURATION_OPTIONS,
   formatBreakUntilLabel,
   getPlannedBreakEnd,
   type BreakDurationMinutes,
 } from "@/lib/break-billing";
-import { roundedShiftBounds, roundClockInUp15 } from "@/lib/pay-calculation";
+import { roundClockInUp15 } from "@/lib/pay-calculation";
 import type { Staff } from "@/types/timecard";
 
-export function StaffScreen() {
+export function EmployeeScreen() {
   const {
     staff,
     loading,
@@ -36,16 +29,14 @@ export function StaffScreen() {
     setMessage,
     load,
     openByStaff,
-    completedEntries,
   } = useTimecardBootstrap();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showBreakPicker, setShowBreakPicker] = useState(false);
-  const [showMyHistory, setShowMyHistory] = useState(false);
 
   const activeStaff = useMemo(
-    () => staff.filter((p) => p.isActive && p.employmentType === "part_time"),
+    () => staff.filter((p) => p.isActive && p.employmentType === "employee"),
     [staff],
   );
 
@@ -57,13 +48,12 @@ export function StaffScreen() {
       const bOnBreak = !!bOpen?.breaks.find((br) => !br.breakEnd);
 
       const rank = (isOpen: boolean, isOnBreak: boolean) => {
-        if (isOpen && isOnBreak) return 0; // ① 休憩中
-        if (isOpen && !isOnBreak) return 1; // ② 出勤中
-        return 2; // ③ その他
+        if (isOpen && isOnBreak) return 0;
+        if (isOpen && !isOnBreak) return 1;
+        return 2;
       };
 
-      const rankDiff =
-        rank(!!aOpen, aOnBreak) - rank(!!bOpen, bOnBreak);
+      const rankDiff = rank(!!aOpen, aOnBreak) - rank(!!bOpen, bOnBreak);
       if (rankDiff !== 0) return rankDiff;
       return a.name.localeCompare(b.name, "ja");
     });
@@ -74,21 +64,7 @@ export function StaffScreen() {
   const openBreak = open?.breaks.find((b) => !b.breakEnd);
   const breakUntil = openBreak ? getPlannedBreakEnd(openBreak) : null;
 
-  const monthKey = currentMonthKey();
-
-  const myHistory = useMemo(() => {
-    if (!selectedId) return [];
-    return filterCompletedByMonth(
-      completedEntries.filter((e) => e.staffId === selectedId),
-      monthKey,
-    ).sort(
-      (a, b) =>
-        new Date(b.clockIn).getTime() - new Date(a.clockIn).getTime(),
-    );
-  }, [completedEntries, selectedId, monthKey]);
-
   const refreshSilent = useCallback(() => load({ silent: true }), [load]);
-
   useEffect(() => {
     if (!openBreak || !breakUntil) return;
     const ms = breakUntil.getTime() - Date.now();
@@ -99,9 +75,7 @@ export function StaffScreen() {
     const timeoutId = window.setTimeout(() => {
       void refreshSilent();
     }, ms + 300);
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
+    return () => window.clearTimeout(timeoutId);
   }, [openBreak?.id, openBreak?.breakStart, openBreak?.plannedMinutes, breakUntil, refreshSilent]);
 
   async function runClock(
@@ -119,7 +93,6 @@ export function StaffScreen() {
     }
     setMessage("保存しました");
     setShowBreakPicker(false);
-    setShowMyHistory(false);
     setSelectedId(null);
     await load();
   }
@@ -129,14 +102,15 @@ export function StaffScreen() {
     await runClock(() => breakStartAction(selected.id, minutes));
   }
 
-  if (!selected) {
-    return (
-      <PageShell
-        badge="STAFF"
-        title="アルバイト勤怠"
-        subtitle="自分の名前を選んで、出勤・退勤してください"
-      >
-        <Alerts error={error} message={message} />
+  return (
+    <PageShell
+      badge="EMPLOYEE"
+      title="社員勤退"
+      subtitle="自分の名前を選んで、出勤・退勤してください"
+    >
+      <Alerts error={error} message={message} />
+
+      {!selected ? (
         <section className="space-y-4 pb-4">
           <h2 className="px-1 text-base font-semibold text-slate-900">
             あなたの名前を選ぶ
@@ -145,7 +119,7 @@ export function StaffScreen() {
             <p className="py-8 text-center text-sm text-slate-500">読み込み中…</p>
           ) : activeStaff.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-200 bg-white py-10 text-center text-sm text-slate-500">
-              スタッフが登録されていません。管理者に登録を依頼してください。
+              社員が登録されていません。管理者に登録を依頼してください。
             </p>
           ) : (
             <ul className="space-y-3">
@@ -169,22 +143,8 @@ export function StaffScreen() {
             </ul>
           )}
         </section>
-      </PageShell>
-    );
-  }
-
-  return (
-    <div className="mx-auto w-full max-w-lg space-y-4 px-4 py-4 pb-8">
-      <div className="flex justify-end">
-        <Link
-          href="/"
-          className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
-        >
-          トップへ
-        </Link>
-      </div>
-      <Alerts error={error} message={message} />
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+      ) : (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
           <div className="flex items-start justify-between gap-2">
             <div>
               <h2 className="text-3xl font-bold tracking-wide text-slate-900 md:text-4xl">
@@ -193,10 +153,12 @@ export function StaffScreen() {
               {open ? (
                 <p className="mt-2 text-base text-slate-600 md:text-lg">
                   本日{" "}
-                  {roundClockInUp15(new Date(open.clockIn)).toLocaleTimeString("ja-JP", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {selected.basicStartTime
+                    ? selected.basicStartTime.slice(0, 5)
+                    : roundClockInUp15(new Date(open.clockIn)).toLocaleTimeString("ja-JP", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                   〜
                 </p>
               ) : null}
@@ -204,9 +166,7 @@ export function StaffScreen() {
             {open ? (
               <span
                 className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  openBreak
-                    ? "bg-amber-100 text-amber-900"
-                    : "bg-emerald-100 text-emerald-800"
+                  openBreak ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-800"
                 }`}
               >
                 {openBreak ? "休憩中" : "出勤中"}
@@ -240,18 +200,14 @@ export function StaffScreen() {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() =>
-                      void runClock(() => breakEndAction(selected.id))
-                    }
+                    onClick={() => void runClock(() => breakEndAction(selected.id))}
                     className="w-full touch-manipulation rounded-xl bg-sky-600 py-5 text-xl font-bold text-white disabled:opacity-50"
                   >
                     再開
                   </button>
                 ) : showBreakPicker ? (
                   <div className="space-y-3 rounded-xl border border-sky-200 bg-sky-50/50 p-4">
-                    <p className="text-center text-base font-semibold text-sky-900">
-                      休憩時間を選ぶ
-                    </p>
+                    <p className="text-center text-base font-semibold text-sky-900">休憩時間を選ぶ</p>
                     <div className="grid grid-cols-2 gap-2">
                       {BREAK_DURATION_OPTIONS.map((minutes) => (
                         <button
@@ -291,9 +247,7 @@ export function StaffScreen() {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() =>
-                      void runClock(() => clockOutAction(selected.id))
-                    }
+                    onClick={() => void runClock(() => clockOutAction(selected.id))}
                     className="w-full touch-manipulation rounded-xl bg-amber-600 py-5 text-xl font-bold text-white disabled:opacity-50"
                   >
                     退勤
@@ -302,52 +256,9 @@ export function StaffScreen() {
               </>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={() => setShowMyHistory((prev) => !prev)}
-            className="mt-5 w-full touch-manipulation rounded-xl border border-slate-200 bg-white py-3.5 text-base font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            自分の勤務履歴を見る
-          </button>
-          {showMyHistory ? (
-            <section className="mt-3 border-t border-slate-100 pt-4">
-              <h3 className="text-sm font-semibold text-slate-900">
-                自分の勤務履歴（{formatMonthLabel(monthKey)}）
-              </h3>
-              {myHistory.length === 0 ? (
-                <p className="mt-2 text-sm text-slate-500">
-                  今月の履歴はまだありません
-                </p>
-              ) : (
-                <ul className="mt-3 space-y-2">
-                  {myHistory.map((entry) => {
-                    const rounded = roundedShiftBounds(
-                      entry.clockIn,
-                      entry.clockOut,
-                      new Date(),
-                    );
-                    return (
-                      <li
-                        key={entry.id}
-                        className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-sm"
-                      >
-                        <p className="text-xs text-slate-600">
-                          {formatRoundedDateTime(rounded.clockIn.toISOString())} 〜{" "}
-                          {entry.clockOut
-                            ? formatRoundedDateTime(rounded.clockOut.toISOString())
-                            : "—"}
-                        </p>
-                        <EntryHistoryStats entry={entry} />
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-          ) : null}
-      </section>
-    </div>
+        </section>
+      )}
+    </PageShell>
   );
 }
 
@@ -382,11 +293,3 @@ function StaffPickButton({
   );
 }
 
-function formatRoundedDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("ja-JP", {
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}

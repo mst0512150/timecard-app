@@ -20,6 +20,13 @@ export function AdminGate() {
     setReady(true);
   }, []);
 
+  useEffect(() => {
+    // 管理画面から離れたら毎回ログアウト扱いにする
+    return () => {
+      clearAdminAuthed();
+    };
+  }, []);
+
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoginError(null);

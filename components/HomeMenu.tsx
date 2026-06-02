@@ -15,9 +15,19 @@ export function HomeMenu() {
         href="/staff"
         className="block rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-6 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100/80"
       >
-        <p className="text-lg font-semibold text-emerald-900">スタッフ画面</p>
+        <p className="text-lg font-semibold text-emerald-900">アルバイト勤怠</p>
         <p className="mt-1 text-sm text-emerald-800/90">
-          自分の名前を選んで、出勤・退店する
+          自分の名前を選んで、出勤・退勤する
+        </p>
+      </Link>
+
+      <Link
+        href="/employee"
+        className="block rounded-2xl border border-sky-200 bg-sky-50 px-5 py-6 shadow-sm transition hover:border-sky-300 hover:bg-sky-100/80"
+      >
+        <p className="text-lg font-semibold text-sky-900">社員勤退</p>
+        <p className="mt-1 text-sm text-sky-800/90">
+          自分の名前を選んで、出勤・退勤する
         </p>
       </Link>
 

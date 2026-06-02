@@ -8,7 +8,13 @@ export function getEntryWorkSummary(entry: TimeEntry): WorkSummary {
       nightHours: 0,
       totalHours: 0,
       payYen: 0,
+      breakHours: 0,
     };
   }
-  return summarizeShift(entry.hourlyRate, entry.clockIn, entry.clockOut);
+  return summarizeShift(
+    entry.hourlyRate,
+    entry.clockIn,
+    entry.clockOut,
+    entry.breaks,
+  );
 }

@@ -47,7 +47,7 @@ export function aggregateCompleted(entries: TimeEntry[]) {
   let dayCount = 0;
   for (const e of entries) {
     if (!e.clockOut) continue;
-    const s = summarizeShift(e.hourlyRate, e.clockIn, e.clockOut);
+    const s = summarizeShift(e.hourlyRate, e.clockIn, e.clockOut, e.breaks);
     regularHours += s.regularHours;
     nightHours += s.nightHours;
     totalHours += s.totalHours;
